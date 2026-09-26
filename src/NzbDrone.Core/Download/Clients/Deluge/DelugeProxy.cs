@@ -275,7 +275,7 @@ namespace NzbDrone.Core.Download.Clients.Deluge
                     _logger.Debug("Deluge timeout during request, daemon connection may have been broken. Attempting to reconnect.");
                     return new JsonRpcResponse<TResult>()
                     {
-                        Error = JToken.Parse("{ Code = 2 }")
+                        Error = JToken.Parse("{\"Code\": 2}")
                     };
                 }
                 else
