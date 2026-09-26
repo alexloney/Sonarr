@@ -292,6 +292,11 @@ namespace NzbDrone.Common.Extensions
             var substring = firstPath.Substring(0, length);
             var lastSeparatorIndex = substring.LastIndexOfAny(new[] { '/', '\\' });
 
+            if (lastSeparatorIndex == -1)
+            {
+                return string.Empty;
+            }
+
             return substring.Substring(0, lastSeparatorIndex);
         }
 

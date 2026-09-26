@@ -444,5 +444,44 @@ namespace NzbDrone.Common.Test
 
             path1.PathEquals(path2);
         }
+
+        [Test]
+        public void should_return_same_folder_windows()
+        {
+            var paths = new System.Collections.Generic.List<string>
+            {
+                "C:\\some\\path\\here\\First Show.mkv",
+                "C:\\some\\path\\here\\Second Show.mkv"
+            };
+            var result = NzbDrone.Common.Extensions.PathExtensions.GetLongestCommonPath(paths);
+            var expected = "C:\\some\\path\\here";
+            result.Should().Be(expected);
+        }
+
+        [Test]
+        public void should_return_same_folder_linux()
+        {
+            var paths = new System.Collections.Generic.List<string>
+            {
+                "/some/path/here/First Show.mkv",
+                "/some/path/here/Second Show.mkv"
+            };
+            var result = NzbDrone.Common.Extensions.PathExtensions.GetLongestCommonPath(paths);
+            var expected = "/some/path/here";
+            result.Should().Be(expected);
+        }
+
+        [Test]
+        public void should_return_empty_with_no_path()
+        {
+            var paths = new System.Collections.Generic.List<string>
+            {
+                "file1.txt",
+                "file2.txt"
+            };
+            var result = NzbDrone.Common.Extensions.PathExtensions.GetLongestCommonPath(paths);
+            var expected = string.Empty;
+            result.Should().Be(expected);
+        }
     }
 }
