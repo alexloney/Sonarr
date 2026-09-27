@@ -658,5 +658,47 @@ namespace NzbDrone.Core.Test.ImportListTests
             Mocker.GetMock<ISeriesService>()
                   .Verify(v => v.UpdateSeries(It.IsAny<List<Series>>(), true), Times.Never());
         }
+
+        [Test]
+        public void should_not_match_on_zero_tmdbid_when_cleaning()
+        {
+            // Cleanup for the test case
+            WithCleanLevel(ListSyncLevelType.KeepAndUnmonitor);
+            WithList(1, enabledAuto: true, pendingRemovals: true);
+
+            // Clear the TmdbId, this is the default value for int when not matched
+            var savedTmdbIds = _existingSeries.Select(s => s.TmdbId).ToList();
+            _existingSeries[0].TmdbId = 0;
+            _existingSeries[1].TmdbId = 0;
+            _existingSeries[2].TmdbId = 0;
+
+            // Create an import list item that only matches the first series (TvdbId = 6),
+            // but also lacks a TMDb ID (TmdbId = 0)
+            var importListItems = new List<ImportListItemInfo>
+            {
+                new ImportListItemInfo { TvdbId = 6, TmdbId = 0 }
+            };
+
+            Mocker.GetMock<IImportListItemService>()
+                .Setup(s => s.All())
+                .Returns(importListItems);
+
+            _importListFetch.Series = importListItems;
+            _importListFetch.Series.ForEach(m => m.ImportListId = 1);
+
+            // Execute the sync and cleanup
+            Subject.Execute(_commandAll);
+
+            // Verify that series 7 and 8 should be updated (unmonitored)
+            // because they are not on the import list.
+            Mocker.GetMock<ISeriesService>()
+                  .Verify(v => v.UpdateSeries(It.Is<List<Series>>(s => s.Count == 2), true), Times.Once());
+
+            // Restore the original TMDb IDs for other tests
+            for (var i = 0; i < _existingSeries.Count; i++)
+            {
+                _existingSeries[i].TmdbId = savedTmdbIds[i];
+            }
+        }
     }
 }

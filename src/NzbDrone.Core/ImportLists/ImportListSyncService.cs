@@ -372,11 +372,11 @@ namespace NzbDrone.Core.ImportLists
             foreach (var series in seriesInLibrary)
             {
                 var seriesExists = allListItems.Where(l =>
-                    l.TvdbId == series.TvdbId ||
+                    (l.TvdbId > 0 && l.TvdbId == series.TvdbId) ||
                     (l.ImdbId.IsNotNullOrWhiteSpace() && series.ImdbId.IsNotNullOrWhiteSpace() && l.ImdbId == series.ImdbId) ||
-                    l.TmdbId == series.TmdbId ||
-                    series.MalIds.Contains(l.MalId) ||
-                    series.AniListIds.Contains(l.AniListId)).ToList();
+                    (l.TmdbId > 0 && l.TmdbId == series.TmdbId) ||
+                    (l.MalId > 0 && series.MalIds.Contains(l.MalId)) ||
+                    (l.AniListId > 0 && series.AniListIds.Contains(l.AniListId))).ToList();
 
                 if (!seriesExists.Any())
                 {
