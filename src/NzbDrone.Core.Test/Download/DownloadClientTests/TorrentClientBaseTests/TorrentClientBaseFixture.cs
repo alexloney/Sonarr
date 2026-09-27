@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using FluentAssertions;
 using Moq;
 using NUnit.Framework;
+using NzbDrone.Common.Http;
 using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Exceptions;
@@ -203,6 +205,37 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.TorrentClientBaseTests
 
             Mocker.GetMock<IBlocklistService>()
                   .Verify(s => s.Block(It.IsAny<RemoteEpisode>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never());
+        }
+
+        [Test]
+        public async Task should_fallback_to_magnet_when_torrent_download_fails_and_prefer_torrent_file_is_true()
+        {
+            Subject.SetPreferTorrentFile(true);
+            var remoteEpisode = CreateRemoteEpisode();
+
+            // Explicitly provide a Release with BOTH a torrent URL and a fallback magnet URL
+            var torrentInfo = new TorrentInfo
+            {
+                Title = "Droned.S01E01.Pilot.1080p.WEB-DL",
+                DownloadUrl = "http://example.com/test.torrent",
+                MagnetUrl = "magnet:?xt=urn:btih:c12fe1c06bba254a9dc9f519b335aa7c1367a88a",
+                IndexerId = 1
+            };
+            remoteEpisode.Release = torrentInfo;
+
+            // Force the HTTP client to throw an exception when attempting to download the .torrent file
+            Mocker.GetMock<IHttpClient>()
+                  .Setup(s => s.GetAsync(It.IsAny<HttpRequest>(), It.IsAny<System.Threading.CancellationToken>()))
+                  .ThrowsAsync(new System.Net.WebException("Simulated download failure"));
+
+            // Run the download process, expecting the torrent download to fail
+            // and for it to automatically fallback to the magnet link.
+            var result = await Subject.Download(remoteEpisode, CreateIndexer());
+            result.Should().NotBeNullOrWhiteSpace();
+
+            // Because the above process triggers an exception, we expect
+            // one error log to be generated
+            ExceptionVerification.ExpectedErrors(1);
         }
     }
 }
