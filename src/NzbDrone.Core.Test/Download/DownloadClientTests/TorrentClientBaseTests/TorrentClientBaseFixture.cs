@@ -212,8 +212,6 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.TorrentClientBaseTests
         {
             Subject.SetPreferTorrentFile(true);
             var remoteEpisode = CreateRemoteEpisode();
-
-            // Explicitly provide a Release with BOTH a torrent URL and a fallback magnet URL
             var torrentInfo = new TorrentInfo
             {
                 Title = "Droned.S01E01.Pilot.1080p.WEB-DL",
@@ -223,18 +221,14 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.TorrentClientBaseTests
             };
             remoteEpisode.Release = torrentInfo;
 
-            // Force the HTTP client to throw an exception when attempting to download the .torrent file
             Mocker.GetMock<IHttpClient>()
                   .Setup(s => s.GetAsync(It.IsAny<HttpRequest>(), It.IsAny<System.Threading.CancellationToken>()))
                   .ThrowsAsync(new System.Net.WebException("Simulated download failure"));
-
-            // Run the download process, expecting the torrent download to fail
-            // and for it to automatically fallback to the magnet link.
             var result = await Subject.Download(remoteEpisode, CreateIndexer());
             result.Should().NotBeNullOrWhiteSpace();
 
-            // Because the above process triggers an exception, we expect
-            // one error log to be generated
+            // Because of the Mocker above throwing an WebException, we need to
+            // expect an error log entry.
             ExceptionVerification.ExpectedErrors(1);
         }
     }
